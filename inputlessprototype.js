@@ -1,7 +1,6 @@
 // =============================================================================
 // GLOBAL CONFIGURATION & DATA
 // =============================================================================
-// CRITICAL: New endpoint to fetch metrics and next day's prediction
 const API_URL = 'http://127.0.0.1:5000/metrics_and_prediction'; 
 
 let rainfallMap = null;
@@ -27,40 +26,36 @@ const rainfallData = [
 ];
 
 // =============================================================================
-// MAP & UTILITY FUNCTIONS
+// UTILITY FUNCTIONS
 // =============================================================================
 
-// Function to fetch data on page load
-function fetchAndDisplayInitialData() {
-    
-    // 1. Where the fetch request goes:
-    fetch(API_URL) 
-        .then(response => {
-            // Check for non-200 HTTP status codes
-            if (!response.ok) {
-                // Read the error message from the server response body
-                return response.json().then(err => {
-                    throw new Error(`Flask API Error. Details: ${err.error}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Data received from API:", data);
-            
-            // 2. Call a function to populate the dashboard metrics/predictions
-            displayMetrics(data.metrics);
-            displayPrediction(data.prediction, data.prediction_date);
-        })
-        .catch(error => {
-            console.error("Fetch Error:", error);
-            // 3. Display an error message to the user
-            alert(`Failed to fetch data from Flask API. ${error.message}. Ensure the Python server is running at ${API_URL}`);
-        });
+function showLoading() {
+    loadingOverlay.style.display = 'flex';
 }
 
-// Ensure the function runs once the page elements are loaded
-document.addEventListener('DOMContentLoaded', fetchAndDisplayInitialData);
+function hideLoading() {
+    loadingOverlay.style.display = 'none';
+}
+
+function showCustomMessage(message) {
+    messageContent.textContent = message;
+    messageBox.style.display = 'block';
+}
+
+function showAccountMessage() {
+    showCustomMessage("Account management is not yet implemented.");
+}
+
+function getRainDescription(rainAmount) {
+    if (rainAmount >= 10.0) return "HEAVY RAINFALL expected. Take precautions for flooding.";
+    if (rainAmount >= 2.0) return "MODERATE RAIN expected. Carry an umbrella.";
+    if (rainAmount > 0) return "SLIGHT SHOWERS expected. Minimal impact.";
+    return "CLEAR SKIES forecast. No rainfall predicted.";
+}
+
+// =============================================================================
+// MAP FUNCTIONS
+// =============================================================================
 
 function getRainfallColor(rainfall) {
     if (rainfall >= 50) return { color: '#FF0000', radius: 10 };
@@ -70,7 +65,10 @@ function getRainfallColor(rainfall) {
 }
 
 function initializeMap() {
-    if (typeof L === 'undefined') return;
+    if (typeof L === 'undefined') {
+        console.error('Leaflet library not loaded');
+        return;
+    }
 
     rainfallMap = L.map('map').setView([14.5995, 121.0244], 11);
 
@@ -119,28 +117,18 @@ function loadMarkers() {
 }
 
 function showAllMarkers() {
-    if (markers.length > 0) {
+    if (markers.length > 0 && rainfallMap) {
         rainfallMap.fitBounds(markerCluster.getBounds());
     }
 }
 
 function toggleRainfallLayer() {
-    // Placeholder function
     showCustomMessage("The rainfall layer toggle is a placeholder for dynamic data visualization.");
 }
 
-function showCustomMessage(message) {
-    messageContent.textContent = message;
-    messageBox.style.display = 'block';
-}
-
-function showLoading() {
-    loadingOverlay.style.display = 'flex';
-}
-
-function hideLoading() {
-    loadingOverlay.style.display = 'none';
-}
+// =============================================================================
+// THEME FUNCTIONS
+// =============================================================================
 
 function applyTheme(isLight) {
     if (isLight) {
@@ -158,115 +146,79 @@ function toggleTheme() {
     applyTheme(isLight);
 }
 
-function getRainDescription(rainValue) {
-    if (rainValue >= 10.0) return "HEAVY RAINFALL expected. Take precautions for flooding.";
-    if (rainValue >= 2.0) return "MODERATE RAIN expected. Carry an umbrella.";
-    if (rainValue > 0) return "SLIGHT SHOWERS expected. Minimal impact.";
-    return "CLEAR SKIES forecast. No rainfall predicted.";
+// =============================================================================
+// API CALL & DASHBOARD UPDATE
+// =============================================================================
+
+function updateDashboard(data) {
+    console.log("Updating dashboard with data:", data);
+    
+    const pred = data.prediction;
+    const metrics = data.metrics;
+    
+    // 1. Update Prediction Date
+    document.getElementById('prediction-date').textContent = data.prediction_date || 'Unknown';
+    
+    // 2. Update Classification Results
+    const rainProb = (pred.rain_probability * 100).toFixed(1);
+    document.getElementById('rain-probability').textContent = `${rainProb}%`;
+    document.getElementById('rain-description').textContent = 
+        pred.rain_occurrence === 1 ? 'Rain is expected tomorrow' : 'No rain expected tomorrow';
+    
+    // 3. Update Regression Results
+    const rainAmount = pred.rain_amount.toFixed(2);
+    document.getElementById('rainfall-amount').textContent = `${rainAmount} mm`;
+    document.getElementById('rainfall-description-amount').textContent = getRainDescription(pred.rain_amount);
+    
+    // 4. Update Model Metrics
+    if (metrics.classification && metrics.regression) {
+        document.getElementById('metrics-f1').textContent = metrics.classification.f1_score.toFixed(4);
+        document.getElementById('metrics-mae').textContent = `${metrics.regression.mae.toFixed(4)} mm`;
+        document.getElementById('metrics-rmse').textContent = `${metrics.regression.rmse.toFixed(4)} mm`;
+        document.getElementById('metrics-r2').textContent = metrics.regression.r2.toFixed(4);
+    }
 }
 
-// =============================================================================
-// API CALL & DOM UPDATE
-// =============================================================================
-
 function fetchPredictionAndMetrics() {
+    console.log("Fetching data from:", API_URL);
     showLoading();
     
-    fetch('http://127.0.0.1:5000/metrics_and_prediction', {
+    fetch(API_URL, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
         }
     })
     .then(response => {
+        console.log("Response status:", response.status);
         if (!response.ok) {
             return response.json().then(err => { 
                 throw new Error(err.error || `HTTP error! status: ${response.status}`); 
+            }).catch(() => {
+                throw new Error(`HTTP error! status: ${response.status}`);
             });
         }
         return response.json();
     })
     .then(data => {
+        console.log("Data received:", data);
         hideLoading();
         updateDashboard(data);
     })
     .catch((error) => {
         hideLoading();
         console.error('API Error:', error);
-        showCustomMessage(`Failed to fetch data from Flask API. Error: ${error.message}. Ensure the Python server is running at ${API_URL}`);
+        showCustomMessage(`Failed to fetch data from Flask API. An unknown internal error occurred. Ensure the Python server is running at ${API_URL}`);
     });
 }
 
-function updateDashboard(data) {
-    const pred = data.prediction;
-    const metrics = data.metrics;
-    
-    // 1. Update Prediction Results
-    const rainProb = (pred.rain_probability * 100).toFixed(1);
-    const rainAmount = pred.rain_amount.toFixed(2);
-    
-    document.getElementById('prediction-date').textContent = data.prediction_date;
-    document.getElementById('rain-probability').textContent = `${rainProb}%`;
-    document.getElementById('rainfall-amount').textContent = `${rainAmount} mm`;
-
-    document.getElementById('rain-description').textContent = getRainDescription(pred.rain_amount);
-    document.getElementById('rainfall-description-amount').textContent = `Amount if rain occurs. Status: ${pred.rain_occurrence === 1 ? 'Rain Expected' : 'No Rain Expected'}`;
-    
-    // 2. Update Model Metrics
-    document.getElementById('metrics-f1').textContent = metrics.f1_score.toFixed(4);
-    document.getElementById('metrics-mae').textContent = `${metrics.mae.toFixed(4)} mm`;
-    document.getElementById('metrics-rmse').textContent = `${metrics.rmse.toFixed(4)} mm`;
-    document.getElementById('metrics-r2').textContent = metrics.r2.toFixed(4);
-}
-
-// =========================================================================
-// The Core Fetch Function (Where you put the fetch call)
-// =========================================================================
-
-function fetchAndDisplayInitialData() {
-    
-    // --- START OF FETCH LOGIC ---
-    fetch(API_URL) 
-        .then(response => {
-            // Error handling logic
-            if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(`Flask API Error. Details: ${err.error || response.statusText}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Data received:", data);
-            
-            // Call your functions to update the dashboard display
-            // You must ensure these functions are defined above
-            displayMetrics(data.metrics);
-            displayPrediction(data.prediction, data.prediction_date);
-        })
-        .catch(error => {
-            console.error("Fetch Error:", error);
-            // Display an error message to the user
-            alert(`Failed to fetch data from Flask API. An unknown internal error occurred. Ensure the Python server is running at ${API_URL}`);
-        });
-    // --- END OF FETCH LOGIC ---
-}
-
-// =========================================================================
-// 3. Event Listener (Ensures the function runs on page load)
-// =========================================================================
-
-/**
- * The 'DOMContentLoaded' listener ensures the function runs only after 
- * all HTML elements (like the metric display slots) are available.
- */
-document.addEventListener('DOMContentLoaded', fetchAndDisplayInitialData);
-
 // =============================================================================
-// INITIALIZATION ON LOAD
+// INITIALIZATION ON PAGE LOAD
 // =============================================================================
 
 window.onload = function() {
+    console.log("Page loaded, initializing...");
+    
     // 1. Load theme preference
     const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme === 'light') {
