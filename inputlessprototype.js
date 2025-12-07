@@ -30,6 +30,38 @@ const rainfallData = [
 // MAP & UTILITY FUNCTIONS
 // =============================================================================
 
+// Function to fetch data on page load
+function fetchAndDisplayInitialData() {
+    
+    // 1. Where the fetch request goes:
+    fetch(API_URL) 
+        .then(response => {
+            // Check for non-200 HTTP status codes
+            if (!response.ok) {
+                // Read the error message from the server response body
+                return response.json().then(err => {
+                    throw new Error(`Flask API Error. Details: ${err.error}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Data received from API:", data);
+            
+            // 2. Call a function to populate the dashboard metrics/predictions
+            displayMetrics(data.metrics);
+            displayPrediction(data.prediction, data.prediction_date);
+        })
+        .catch(error => {
+            console.error("Fetch Error:", error);
+            // 3. Display an error message to the user
+            alert(`Failed to fetch data from Flask API. ${error.message}. Ensure the Python server is running at ${API_URL}`);
+        });
+}
+
+// Ensure the function runs once the page elements are loaded
+document.addEventListener('DOMContentLoaded', fetchAndDisplayInitialData);
+
 function getRainfallColor(rainfall) {
     if (rainfall >= 50) return { color: '#FF0000', radius: 10 };
     if (rainfall >= 10) return { color: '#FFA500', radius: 8 };
@@ -140,7 +172,7 @@ function getRainDescription(rainValue) {
 function fetchPredictionAndMetrics() {
     showLoading();
     
-    fetch(API_URL, {
+    fetch('http://127.0.0.1:5000/metrics_and_prediction', {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -186,6 +218,49 @@ function updateDashboard(data) {
     document.getElementById('metrics-rmse').textContent = `${metrics.rmse.toFixed(4)} mm`;
     document.getElementById('metrics-r2').textContent = metrics.r2.toFixed(4);
 }
+
+// =========================================================================
+// The Core Fetch Function (Where you put the fetch call)
+// =========================================================================
+
+function fetchAndDisplayInitialData() {
+    
+    // --- START OF FETCH LOGIC ---
+    fetch(API_URL) 
+        .then(response => {
+            // Error handling logic
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(`Flask API Error. Details: ${err.error || response.statusText}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Data received:", data);
+            
+            // Call your functions to update the dashboard display
+            // You must ensure these functions are defined above
+            displayMetrics(data.metrics);
+            displayPrediction(data.prediction, data.prediction_date);
+        })
+        .catch(error => {
+            console.error("Fetch Error:", error);
+            // Display an error message to the user
+            alert(`Failed to fetch data from Flask API. An unknown internal error occurred. Ensure the Python server is running at ${API_URL}`);
+        });
+    // --- END OF FETCH LOGIC ---
+}
+
+// =========================================================================
+// 3. Event Listener (Ensures the function runs on page load)
+// =========================================================================
+
+/**
+ * The 'DOMContentLoaded' listener ensures the function runs only after 
+ * all HTML elements (like the metric display slots) are available.
+ */
+document.addEventListener('DOMContentLoaded', fetchAndDisplayInitialData);
 
 // =============================================================================
 // INITIALIZATION ON LOAD
