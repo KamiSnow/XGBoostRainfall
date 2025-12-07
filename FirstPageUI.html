@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clickable Text Screen</title>
+    <style>
+        body {
+            /* Using the background.png file you specified */
+            background-image: url('background.png'); 
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            color: white; /* Text color */
+            text-align: center;
+        }
+        
+        .clickable-area {
+            /* Make the text block the clickable area */
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 50px; /* Optional: adds padding to make clicking easier */
+        }
+
+        h1 {
+            font-size: 4em; /* For "METRO MANILA" */
+            font-weight: 300;
+            margin-bottom: 0.1em;
+            letter-spacing: 0.1em;
+        }
+
+        p {
+            font-size: 1.5em; /* For "RAINFALL PREDICTION" */
+            font-weight: 100;
+            opacity: 0.8;
+            letter-spacing: 0.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="UI TEST.html" class="clickable-area">
+        <h1>METRO MANILA</h1>
+        <p>RAINFALL PREDICTION</p>
+    </a>
+
+</body>
+</html>

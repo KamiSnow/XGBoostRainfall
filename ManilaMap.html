@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rainfall Condition Map</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js" />
+    
+    <style>
+        /* --- Dark Mode Variables (Default) --- */
+        :root {
+            --bg-primary: #101014;
+            --bg-secondary: rgba(16, 16, 20, 0.95);
+            --color-text: #F0F0F0;
+            --color-subtle: #A0A0A0;
+            --color-border: #1a2a47;
+            --color-card-bg: rgba(16, 16, 20, 0.85);
+            --color-search-bg: #1a2a47;
+            --color-map-bg: #2b3a4a;
+            --color-high-rain: #ff0000;
+            --color-mod-rain: #ffa500;
+            --color-light-rain: #FFC107;
+            --color-no-rain: #00ff00;
+        }
+
+        /* --- Light Mode Variables --- */
+        .light-mode {
+            --bg-primary: #F0F0F0;
+            --bg-secondary: rgba(255, 255, 255, 0.95);
+            --color-text: #101014;
+            --color-subtle: #444444;
+            --color-border: #CCCCCC;
+            --color-card-bg: rgba(255, 255, 255, 0.95);
+            --color-search-bg: #E0E0E0;
+            --color-map-bg: #DDDDDD;
+            --color-high-rain: #cc0000;
+            --color-mod-rain: #ff8c00;
+            --color-light-rain: #e6b800;
+            --color-no-rain: #00cc00;
+        }
+
+        /* --- General Body and Layout Styles --- */
+        body {
+            background-color: var(--bg-primary); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--color-text);
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Overlay for better readability over the background image */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-secondary, rgba(0, 0, 0, 0.4)); 
+            z-index: -1;
+            opacity: 1;
+            transition: background-color 0.3s;
+        }
+
+        .map-dashboard-container {
+            width: 95%; 
+            max-width: 1200px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--color-border); 
+            box-shadow: 0 0 20px rgba(0, 160, 255, 0.1);
+            background-color: var(--color-card-bg); 
+            border-radius: 10px;
+            transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+
+        /* --- Header Styles --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+        }
+
+        .header-left, .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .icon {
+            font-size: 1.5em; 
+            opacity: 0.8;
+            cursor: pointer;
+            color: var(--color-text);
+            transition: color 0.3s, opacity 0.2s;
+        }
+
+        .icon:hover {
+            opacity: 1;
+        }
+        
+        .city-name {
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        .search-bar {
+            background-color: var(--color-search-bg);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            width: 250px;
+            transition: background-color 0.3s;
+        }
+
+        .search-bar input {
+            background: none;
+            border: none;
+            color: var(--color-text);
+            margin-left: 10px;
+            width: 100%;
+            outline: none;
+            transition: color 0.3s;
+        }
+        
+        /* Ensure placeholder color adapts in light mode */
+        .light-mode .search-bar input::placeholder {
+            color: var(--color-subtle);
+        }
+
+        /* --- Map Area --- */
+        .map-area {
+            width: 100%;
+            height: 600px; 
+            margin-bottom: 20px;
+            background-color: var(--color-map-bg); 
+            border-radius: 5px;
+            border: 1px solid var(--color-border);
+            transition: background-color 0.3s, border-color 0.3s;
+            position: relative;
+        }
+
+        /* The Leaflet map container must have a fixed height and width */
+        #map {
+            width: 100%;
+            height: 100%; /* Fill the parent .map-area */
+            border-radius: 5px; 
+            border: none;
+        }
+        
+        /* Override leaflet default background to match dark mode */
+        .leaflet-container {
+            background: var(--color-map-bg) !important; 
+        }
+
+        /* Map Controls Styling */
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .map-control-btn {
+            background: var(--color-search-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .map-control-btn:hover {
+            background: var(--color-border);
+        }
+
+        .map-info-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 5px;
+            padding: 10px 15px;
+            max-width: 250px;
+            backdrop-filter: blur(10px);
+        }
+
+        .map-info-box h4 {
+            margin: 0 0 5px 0;
+            color: var(--color-text);
+        }
+
+        .map-info-box p {
+            margin: 0;
+            font-size: 0.9em;
+            color: var(--color-subtle);
+        }
+
+        /* --- Legend and Warning (Footer Content) --- */
+        .footer-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            padding-top: 10px;
+        }
+
+        .rain-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .legend-color {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        
+        .legend-text {
+            line-height: 1.4;
+            font-size: 0.9em;
+        }
+
+        .legend-text strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .warning-box {
+            padding: 15px;
+            border-radius: 5px;
+            text-align: right;
+            border: 1px solid var(--color-border); 
+            background-color: var(--color-search-bg, #1a2a47); 
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .light-mode .warning-box {
+            background-color: #F8F8F8;
+            border: 1px solid #CCCCCC;
+        }
+
+        .warning-box h3 {
+            margin-top: 0;
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .warning-level {
+            font-size: 1em;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            color: var(--color-subtle);
+            transition: color 0.3s;
+        }
+
+        .warning-message {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #ff3333; /* Red color remains for severe warning */
+            line-height: 1.3;
+        }
+
+        /* Marker Cluster Styles */
+        .marker-cluster-small {
+            background-color: rgba(181, 226, 140, 0.6);
+        }
+        .marker-cluster-small div {
+            background-color: rgba(110, 204, 57, 0.6);
+        }
+
+        .marker-cluster-medium {
+            background-color: rgba(241, 211, 87, 0.6);
+        }
+        .marker-cluster-medium div {
+            background-color: rgba(240, 194, 12, 0.6);
+        }
+
+        .marker-cluster-large {
+            background-color: rgba(253, 156, 115, 0.6);
+        }
+        .marker-cluster-large div {
+            background-color: rgba(241, 128, 23, 0.6);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 800px) {
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+            .rain-legend {
+                grid-template-columns: 1fr;
+            }
+            .warning-box {
+                text-align: left;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .search-bar {
+                margin-top: 10px;
+                width: 100%;
+            }
+            .header-right {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+            }
+            .map-controls {
+                flex-direction: column;
+                gap: 5px;
+            }
+            .map-info-box {
+                max-width: 200px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="map-dashboard-container">
+    
+    <div class="header">
+        <div class="header-left">
+            <a href="UI TEST.html" class="icon" style="text-decoration: none; color: inherit;">&#x2190;</a> 
+            <span id="apps-btn" class="icon material-icons" onclick="showAppsMessage()">apps</span>
+            <span id="notifications-btn" class="icon material-icons" onclick="showNotificationsMessage()">notifications</span>
+            <span class="city-name">Metro Manila</span>
+        </div>
+
+        <div class="search-bar">
+            <span class="icon material-icons" style="margin-right: 5px;">search</span>
+            <input type="text" placeholder="Search City" id="search-input">
+        </div>
+
+        <div class="header-right">
+            <span id="theme-toggle" class="icon material-icons" title="Toggle Light/Dark Mode">nights_stay</span>
+            <span id="account-btn" class="icon material-icons" onclick="showAccountMessage()">account_circle</span>
+        </div>
+    </div>
+    
+    <hr style="border-top: 1px solid var(--color-border); margin: 0 0 20px 0;">
+    
+    <div class="map-area">
+        <div id="map"></div>
+        <div class="map-controls">
+            <button class="map-control-btn" onclick="showAllMarkers()">Show All Areas</button>
+            <button class="map-control-btn" onclick="focusOnSampaloc()">Focus Sampaloc</button>
+            <button class="map-control-btn" onclick="toggleRainfallLayer()">Toggle Rainfall</button>
+        </div>
+        <div class="map-info-box">
+            <h4>🌧️ Rainfall Map</h4>
+            <p>Click on markers for rainfall details. Colors indicate rainfall intensity.</p>
+        </div>
+    </div>
+
+    <div class="footer-content">
+        
+        <div class="rain-legend">
+            
+            <div class="legend-item">
+                <span class="legend-color" style="color: var(--color-high-rain);">&#x2601;&#xFE0F;</span>
+                <div class="legend-text">
+                    <strong>Red – High Rain:</strong>
+                    Heavy rainfall expected – take precautions.
+                </div>
+            </div>
+            
+            <div class="legend-item">
+                <span class="legend-color" style="color: var(--color-mod-rain);">&#x26C6;</span>
+                <div class="legend-text">
+                    <strong>Orange – Moderate Rain:</strong>
+                    Moderate rain – carry an umbrella.
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <span class="legend-color" style="color: var(--color-light-rain);">&#x26C5;</span> 
+                <div class="legend-text">
+                    <strong>Yellow – Slight Rain:</strong>
+                    Light showers – minimal impact.
+                </div>
+            </div>
+            
+            <div class="legend-item">
+                <span class="legend-color" style="color: var(--color-no-rain);">&#x2600;&#xFE0F;</span>
+                <div class="legend-text">
+                    <strong>Green – No Rain:</strong>
+                    Clear skies – no rain forecast.
+                </div>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <h3>Sampaloc, Manila</h3>
+            <p class="warning-level">Flood-Prone: High</p>
+            <hr style="border-top: 1px solid var(--color-border); margin: 10px 0; transition: border-color 0.3s;">
+            <p class="warning-message">
+                Severe flooding expected.<br>
+                <strong>Evacuate immediately and move to higher ground.</strong>
+            </p>
+        </div>
+
+    </div>
+
+</div>
+
+<div id="custom-message-box" style="
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: var(--color-card-bg); border: 2px solid var(--color-border); border-radius: 8px;
+    padding: 20px; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    display: none; flex-direction: column; align-items: center; text-align: center;
+    min-width: 300px; max-width: 80%; transition: background 0.3s, border 0.3s;
+">
+    <p id="message-content" style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--color-text); transition: color 0.3s;"></p>
+    <button onclick="document.getElementById('custom-message-box').style.display='none'" style="
+        background-color: #1a2a47; color: white; border: none; padding: 8px 15px;
+        border-radius: 5px; cursor: pointer; transition: background-color 0.2s;
+    ">Close</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<script>
+    // Rainfall data for different areas in Metro Manila
+    const rainfallData = [
+        {
+            name: "Sampaloc, Manila",
+            coords: [14.6042, 120.9822],
+            rainfall: 85, // mm - High rain
+            status: "Severe",
+            floodRisk: "High",
+            population: "280,000",
+            color: "red"
+        },
+        {
+            name: "Makati CBD",
+            coords: [14.5547, 121.0244],
+            rainfall: 45, // mm - Moderate rain
+            status: "Moderate",
+            floodRisk: "Medium",
+            population: "620,000",
+            color: "orange"
+        },
+        {
+            name: "Quezon City",
+            coords: [14.6760, 121.0437],
+            rainfall: 25, // mm - Light rain
+            status: "Light",
+            floodRisk: "Low",
+            population: "2.96M",
+            color: "yellow"
+        },
+        {
+            name: "Taguig City",
+            coords: [14.5176, 121.0509],
+            rainfall: 10, // mm - Very light
+            status: "Light",
+            floodRisk: "Medium",
+            population: "804,000",
+            color: "yellow"
+        },
+        {
+            name: "Pasig City",
+            coords: [14.5764, 121.0851],
+            rainfall: 60, // mm - Moderate to high
+            status: "Moderate",
+            floodRisk: "High",
+            population: "803,000",
+            color: "orange"
+        },
+        {
+            name: "Paranaque City",
+            coords: [14.4793, 121.0198],
+            rainfall: 5, // mm - No significant rain
+            status: "Clear",
+            floodRisk: "Low",
+            population: "665,000",
+            color: "green"
+        },
+        {
+            name: "Marikina City",
+            coords: [14.6507, 121.1029],
+            rainfall: 90, // mm - Very high (flood-prone)
+            status: "Severe",
+            floodRisk: "Very High",
+            population: "456,000",
+            color: "red"
+        },
+        {
+            name: "Mandaluyong City",
+            coords: [14.5794, 121.0359],
+            rainfall: 35, // mm - Moderate
+            status: "Moderate",
+            floodRisk: "Medium",
+            population: "425,000",
+            color: "orange"
+        },
+        {
+            name: "San Juan City",
+            coords: [14.6019, 121.0355],
+            rainfall: 15, // mm - Light
+            status: "Light",
+            floodRisk: "Low",
+            population: "122,000",
+            color: "yellow"
+        },
+        {
+            name: "Las Piñas City",
+            coords: [14.4446, 120.9938],
+            rainfall: 8, // mm - Very light
+            status: "Clear",
+            floodRisk: "Low",
+            population: "590,000",
+            color: "green"
+        }
+    ];
+
+    let rainfallMap = null;
+    let markers = [];
+    let markerCluster = null;
+    let rainfallLayer = null;
+    let isRainfallLayerVisible = false;
+
+    // Constants for local storage
+    const THEME_KEY = 'rainfall-theme';
+    const body = document.body;
+    const themeToggle = document.getElementById('theme-toggle');
+    const messageBox = document.getElementById('custom-message-box');
+    const messageContent = document.getElementById('message-content');
+    const searchInput = document.getElementById('search-input');
+    
+    // --- MAP INITIALIZATION FUNCTION ---
+    function initializeMap() {
+        if (typeof L === 'undefined') {
+            console.error("Leaflet (L) is not defined.");
+            const mapArea = document.getElementById('map');
+            if (mapArea) {
+                 mapArea.innerHTML = '<p style="color: red; padding: 20px; text-align: center;">ERROR: Leaflet map library failed to load.</p>';
+            }
+            return;
+        }
+        
+        console.log("Leaflet library loaded successfully. Drawing interactive rainfall map.");
+
+        if (rainfallMap) return;
+
+        const METRO_MANILA_CENTER = [14.5995, 121.0244];
+        const INITIAL_ZOOM = 11;
+
+        // Initialize the map
+        rainfallMap = L.map('map', {
+            zoomControl: true,
+            center: METRO_MANILA_CENTER,
+            zoom: INITIAL_ZOOM
+        });
+
+        // Add different tile layers (map styles)
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19,
+            name: 'OpenStreetMap'
+        }).addTo(rainfallMap);
+
+        const topographicLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors, SRTM',
+            maxZoom: 17,
+            name: 'Topographic'
+        });
+
+        const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CartoDB',
+            maxZoom: 19,
+            name: 'Dark Map'
+        });
+
+        // Add layer control
+        const baseLayers = {
+            "Street Map": osmLayer,
+            "Topographic": topographicLayer,
+            "Dark Theme": darkLayer
+        };
+
+        L.control.layers(baseLayers).addTo(rainfallMap);
+
+        // Add markers for each location with rainfall data
+        addRainfallMarkers();
+
+        // Add rainfall intensity layer (heatmap-like effect)
+        addRainfallIntensityLayer();
+
+        // Add click event to the map
+        rainfallMap.on('click', function(e) {
+            const coords = e.latlng;
+            showCustomMessage(`Map clicked at: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
+        });
+
+        // Add search functionality
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            filterMarkers(searchTerm);
+        });
+
+        setTimeout(() => {
+            rainfallMap.invalidateSize();
+        }, 300);
+    }
+
+    function addRainfallMarkers() {
+        // Clear existing markers
+        if (markerCluster) {
+            markerCluster.clearLayers();
+        }
+        
+        markers = [];
+        markerCluster = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: true,
+            zoomToBoundsOnClick: true
+        });
+
+        rainfallData.forEach(location => {
+            // Determine marker color based on rainfall
+            let markerColor;
+            if (location.rainfall >= 70) markerColor = 'red';
+            else if (location.rainfall >= 40) markerColor = 'orange';
+            else if (location.rainfall >= 20) markerColor = 'yellow';
+            else markerColor = 'green';
+
+            // Create custom icon
+            const icon = L.divIcon({
+                html: `
+                    <div style="
+                        background-color: ${markerColor};
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 50%;
+                        border: 2px solid white;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-weight: bold;
+                        font-size: 12px;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                    ">
+                        ${Math.round(location.rainfall)}
+                    </div>
+                `,
+                className: 'rainfall-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            // Create marker
+            const marker = L.marker(location.coords, { icon: icon })
+                .bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h3 style="margin: 0 0 10px 0; color: ${markerColor};">${location.name}</h3>
+                        <p><strong>Rainfall:</strong> ${location.rainfall} mm</p>
+                        <p><strong>Status:</strong> ${location.status}</p>
+                        <p><strong>Flood Risk:</strong> ${location.floodRisk}</p>
+                        <p><strong>Population:</strong> ${location.population}</p>
+                        <hr style="margin: 10px 0;">
+                        <p style="font-size: 0.9em; color: #666;">
+                            Last updated: ${new Date().toLocaleTimeString()}
+                        </p>
+                    </div>
+                `)
+                .on('click', function() {
+                    // Update warning box when marker is clicked
+                    updateWarningBox(location);
+                    // Show custom message
+                    showCustomMessage(`Selected: ${location.name}\nRainfall: ${location.rainfall}mm\nStatus: ${location.status}`);
+                });
+
+            markers.push(marker);
+            markerCluster.addLayer(marker);
+        });
+
+        rainfallMap.addLayer(markerCluster);
+    }
+
+    function addRainfallIntensityLayer() {
+        // Create heatmap-like effect using circle markers
+        const rainfallPoints = rainfallData.map(location => {
+            return {
+                lat: location.coords[0],
+                lng: location.coords[1],
+                intensity: location.rainfall / 100 // Normalize to 0-1
+            };
+        });
+
+        rainfallLayer = L.layerGroup();
+
+        rainfallPoints.forEach(point => {
+            const radius = point.intensity * 3000; // Scale radius based on rainfall
+            const opacity = Math.min(point.intensity * 0.7, 0.5);
+            
+            let fillColor;
+            if (point.intensity >= 0.7) fillColor = 'rgba(255, 0, 0, 0.3)';
+            else if (point.intensity >= 0.4) fillColor = 'rgba(255, 165, 0, 0.3)';
+            else if (point.intensity >= 0.2) fillColor = 'rgba(255, 193, 7, 0.3)';
+            else fillColor = 'rgba(0, 255, 0, 0.3)';
+
+            L.circle([point.lat, point.lng], {
+                color: fillColor.replace('0.3', '0.8'),
+                fillColor: fillColor,
+                fillOpacity: opacity,
+                radius: radius
+            }).addTo(rainfallLayer);
+        });
+    }
+
+    function toggleRainfallLayer() {
+        if (isRainfallLayerVisible) {
+            rainfallMap.removeLayer(rainfallLayer);
+            showCustomMessage("Rainfall intensity layer hidden");
+        } else {
+            rainfallMap.addLayer(rainfallLayer);
+            showCustomMessage("Rainfall intensity layer visible");
+        }
+        isRainfallLayerVisible = !isRainfallLayerVisible;
+    }
+
+    function filterMarkers(searchTerm) {
+        markerCluster.clearLayers();
+        
+        const filteredMarkers = markers.filter(marker => {
+            const location = rainfallData[markers.indexOf(marker)];
+            return location.name.toLowerCase().includes(searchTerm) || 
+                   location.status.toLowerCase().includes(searchTerm);
+        });
+
+        filteredMarkers.forEach(marker => {
+            markerCluster.addLayer(marker);
+        });
+
+        if (searchTerm && filteredMarkers.length > 0) {
+            const bounds = L.latLngBounds(filteredMarkers.map(m => m.getLatLng()));
+            rainfallMap.fitBounds(bounds, { padding: [50, 50] });
+        }
+    }
+
+    function showAllMarkers() {
+        rainfallMap.fitBounds(markerCluster.getBounds(), { padding: [50, 50] });
+        showCustomMessage("Showing all rainfall monitoring areas in Metro Manila");
+    }
+
+    function focusOnSampaloc() {
+        const sampaloc = rainfallData.find(loc => loc.name.includes("Sampaloc"));
+        if (sampaloc) {
+            rainfallMap.setView(sampaloc.coords, 13);
+            // Open the popup for Sampaloc
+            markers.forEach((marker, index) => {
+                if (rainfallData[index].name.includes("Sampaloc")) {
+                    marker.openPopup();
+                }
+            });
+            updateWarningBox(sampaloc);
+            showCustomMessage("Focused on Sampaloc, Manila - High flood risk area");
+        }
+    }
+
+    function updateWarningBox(location) {
+        const warningBox = document.querySelector('.warning-box');
+        if (warningBox && location) {
+            warningBox.querySelector('h3').textContent = location.name;
+            warningBox.querySelector('.warning-level').textContent = `Flood-Prone: ${location.floodRisk}`;
+            
+            let warningMessage = "";
+            if (location.rainfall >= 70) {
+                warningMessage = "Severe flooding expected.<br><strong>Evacuate immediately and move to higher ground.</strong>";
+            } else if (location.rainfall >= 40) {
+                warningMessage = "Moderate flooding possible.<br><strong>Prepare emergency kits and monitor updates.</strong>";
+            } else if (location.rainfall >= 20) {
+                warningMessage = "Minor flooding in low-lying areas.<br><strong>Stay alert and avoid flooded streets.</strong>";
+            } else {
+                warningMessage = "No immediate flood threat.<br><strong>Continue monitoring weather updates.</strong>";
+            }
+            
+            warningBox.querySelector('.warning-message').innerHTML = warningMessage;
+        }
+    }
+
+    // --- Utility Functions for Custom Message Box ---
+    function showCustomMessage(message) {
+        messageContent.textContent = message;
+        messageBox.style.display = 'flex';
+        const isLightMode = body.classList.contains('light-mode');
+        messageBox.style.background = isLightMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(16, 16, 20, 0.95)';
+        messageBox.style.borderColor = isLightMode ? '#CCCCCC' : '#1a2a47';
+        messageContent.style.color = isLightMode ? '#101014' : '#F0F0F0';
+        messageBox.querySelector('button').style.backgroundColor = isLightMode ? '#A0A0A0' : '#1a2a47';
+    }
+    
+    // --- Theme Toggling Functionality ---
+
+    function applyTheme(isLight) {
+        if (isLight) {
+            body.classList.add('light-mode');
+            themeToggle.textContent = 'light_mode';
+            localStorage.setItem(THEME_KEY, 'light');
+        } else {
+            body.classList.remove('light-mode');
+            themeToggle.textContent = 'nights_stay';
+            localStorage.setItem(THEME_KEY, 'dark');
+        }
+        if (rainfallMap) {
+            setTimeout(() => {
+                rainfallMap.invalidateSize();
+            }, 300);
+        }
+    }
+
+    function toggleTheme() {
+        const isLight = body.classList.contains('light-mode');
+        applyTheme(!isLight);
+    }
+
+    // --- Placeholder Button Handlers ---
+    function showAppsMessage() {
+        showCustomMessage("The Apps Menu would typically open here, showing links to other weather tools and visualizations.");
+    }
+    
+    function showNotificationsMessage() {
+        showCustomMessage("Checking for alerts... No new rainfall or flood notifications at this time.");
+    }
+
+    function showAccountMessage() {
+        showCustomMessage("The Account settings would display here for profile management and personalized alerts.");
+    }
+
+    // --- Initialization on Load ---
+    window.onload = function() {
+        // 1. Load theme preference
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        if (savedTheme === 'light') {
+            applyTheme(true);
+        } else {
+            applyTheme(false);
+        }
+
+        // 2. Attach click listener to the theme toggle icon
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // 3. Initialize the Leaflet Map
+        setTimeout(initializeMap, 100);
+        
+        // 4. Focus on Sampaloc by default (as mentioned in the warning box)
+        setTimeout(focusOnSampaloc, 1500);
+    };
+</script>
+
+</body>
+</html>

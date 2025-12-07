@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Weather Dashboard (Restored & Enhanced)</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="UI TEST.css">
+</head>
+<body id="body" class="dark-mode">
+    <div class="dashboard-container">
+        
+        <header class="dashboard-header">
+            <div class="header-left">
+                <span class="material-icons" id="apps-menu-btn">apps</span>
+                <div class="location">
+                    <span class="material-icons">location_on</span>
+                    <span id="current-location">Metro Manila</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="search-bar">
+                    <span class="material-icons">search</span>
+                    <input type="text" id="city-search" placeholder="Search City">
+                </div>
+                <div class="theme-toggle" id="theme-toggle">
+                    <span class="material-icons">nights_stay</span>
+                </div>
+                <div class="user-avatar" id="account-btn"></div>
+            </div>
+        </header>
+
+        <main class="dashboard-main">
+            
+            <div class="top-controls">
+                <div class="forecast-buttons">
+                    <button class="forecast-btn active" data-tab="forecast">Forecast</button>
+                </div>
+
+                <nav class="days-nav">
+                    <a href="#" class="nav-item">Today</a>
+                    <a href="#" class="nav-item">Tomorrow</a>
+                    <a href="#" class="nav-item active">Next 7days</a>
+                </nav>
+            </div>
+
+            <div id="forecast" class="content-tab active">
+                <section class="weather-summary">
+                    
+                    <div class="card current-day-card">
+                        <div class="card-header">
+                            <span>Friday</span>
+                            <span id="current-time">11:45 AM</span>
+                        </div>
+                        <div class="temperature">16°</div>
+                        <div class="weather-icon-description">
+                            <div class="weather-icon">
+                                <img src="assets/clear-day.svg" alt="Clear Day">
+                            </div>
+                            <span>Real Feel 19°</span>
+                        </div>
+                        <div class="details">
+                            <p>Wind N E: 6.7km/h</p>
+                            <p>Pressure: 100MB</p>
+                            <p>Humidity: 57%</p>
+                        </div>
+                        <div class="sunrise-sunset">
+                            <p>Sunrise: 5:30 AM</p>
+                            <p>Sunset: 6:45</p>
+                        </div>
+                    </div>
+
+                    <div class="card six-day-forecast">
+                        <div class="day-card">
+                            <span>SAT</span>
+                            <img src="assets/cloudy.svg" alt="Cloudy">
+                            <span>10°</span>
+                        </div>
+                        <div class="day-card">
+                            <span>SUN</span>
+                            <img src="assets/scattered-thunderstorms.svg" alt="Scattered Thunderstorms">
+                            <span>15°</span>
+                        </div>
+                        <div class="day-card">
+                            <span>MON</span>
+                            <img src="assets/rainy-3.svg" alt="Heavy Rain">
+                            <span>11°</span>
+                        </div>
+                        <div class="day-card">
+                            <span>TUE</span>
+                            <img src="assets/cloudy-1-day.svg" alt="Partly Cloudy Day">
+                            <span>10°</span>
+                        </div>
+                        <div class="day-card">
+                            <span>WED</span>
+                            <img src="assets/rainy-1.svg" alt="Light Rain">
+                            <span>12°</span>
+                        </div>
+                        <div class="day-card">
+                            <span>THU</span>
+                            <img src="assets/clear-day.svg" alt="Clear Day">
+                            <span>10°</span>
+                        </div>
+                    </div>
+
+                    <div class="card chance-of-rain-card">
+                        <h3>Chance Of Rain</h3>
+                        <div class="rain-chart">
+                            *Chart Placeholder*
+                        </div>
+                        <div class="chart-labels">
+                            <span>10AM</span>
+                            <span>11AM</span>
+                            <span>12PM</span>
+                            <span>01PM</span>
+                            <span>02PM</span>
+                            <span>03PM</span>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="todays-overview">
+                    <h2>Today's Overview</h2>
+                    <div class="overview-grid">
+                        
+                        <div class="overview-card wind-status">
+                            <h3>Wind Status</h3>
+                            <div class="wind-graph">
+                                <img src="assets/wind.svg" alt="Wind Icon">
+                            </div>
+                            <p>7.50 km/h</p>
+                            <p>6.20 AM</p>
+                        </div>
+
+                        <div class="overview-card uv-index">
+                            <h3>UV Index</h3>
+                            <div class="uv-gauge">
+                                <span class="uv-value">5.50 UV</span>
+                            </div>
+                        </div>
+
+                        <div class="overview-card humidity">
+                            <h3>Humidity</h3>
+                            <img src="assets/humidity.png" alt="Humidity Icon">
+                            <p>84%</p>
+                            <p>The dew point is 27° right now</p>
+                        </div>
+
+                        <div class="overview-card visibility">
+                            <h3>Visibility</h3>
+                            <img src="assets/visibility.png" alt="Fog Icon">
+                            <p>04 km</p>
+                            <p>Haze is affecting visibility</p>
+                        </div>
+                        
+                        <div class="overview-card explore-map">
+                            <h3>Explore Metro Manila map of Rainfall Condition</h3>
+                            <div class="map-image">
+                            <a href="ManilaMap.html" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 5;">
+                                <img src="assets/exploremap.jpg" alt="Metro Manila Map" style="opacity: 0.5;">
+                            </a>
+                            <a href="ManilaMap.html" class="get-started-btn" style="z-index: 10;">
+                                GET STARTED
+                            </a>
+                            </div>
+                        </div>
+                        
+                        <div class="overview-card other-cities">
+                            <h3>Other Cities <a href="#">See All</a></h3>
+                            <div class="city-list">
+                                <div class="city-item">
+                                    <p>Manila</p>
+                                    <p>España</p>
+                                    <span class="weather-icon">☁️</span>
+                                    <p>Cloudy</p>
+                                </div>
+                                <div class="city-item">
+                                    <p>Quezon City</p>
+                                    <p>Edsa</p>
+                                    <span class="weather-icon">💨</span>
+                                    <p>Windy</p>
+                                </div>
+                                <div class="city-item">
+                                    <p>Makati</p>
+                                    <p>Ayala Triangle</p>
+                                    <span class="weather-icon">☀️☁️</span>
+                                    <p>Mostly Sunny</p>
+                                </div>
+                                <div class="city-item">
+                                    <p>Taguig</p>
+                                    <p>BGC</p>
+                                    <span class="weather-icon">❄️</span>
+                                    <p>Light SnowShower</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="custom-message-box">
+        <p id="message-content"></p>
+        <button onclick="document.getElementById('custom-message-box').style.display='none'">Close</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

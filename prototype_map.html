@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rainfall Dashboard - Metro Manila</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Leaflet CSS with integrity hash -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <!-- Marker Cluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+          crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+          crossorigin=""/>
+    
+    <link rel="stylesheet" href="prototype_map.css">
+    
+    <!-- Fix for map container sizing -->
+    <style>
+        /* Ensure map container has proper dimensions */
+        .map-area {
+            width: 100%;
+            height: 600px;
+            margin-bottom: 20px;
+            background-color: #2b3a4a; /* Fallback color */
+            border-radius: 5px;
+            border: 1px solid var(--color-border);
+            position: relative;
+            overflow: hidden; /* Prevent overflow issues */
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 5px;
+            border: none;
+        }
+
+        /* Fix for Leaflet tiles loading */
+        .leaflet-container {
+            background: #2b3a4a !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="map-dashboard-container">
+    
+    <div class="header">
+        <div class="header-left">
+            <a href="manilamap.html" class="icon" style="text-decoration: none; color: inherit;">←</a> 
+            <span id="apps-btn" class="icon material-icons" onclick="showAppsMessage()">apps</span>
+            <span id="notifications-btn" class="icon material-icons" onclick="showNotificationsMessage()">notifications</span>
+            <span class="city-name">Metro Manila Rainfall Dashboard</span>
+        </div>
+
+        <div class="search-bar">
+            <span class="icon material-icons" style="margin-right: 5px;">search</span>
+            <input type="text" placeholder="Search City" id="search-input">
+        </div>
+
+        <div class="header-right">
+            <span id="theme-toggle" class="icon material-icons" title="Toggle Light/Dark Mode">nights_stay</span>
+            <span id="account-btn" class="icon material-icons" onclick="showAccountMessage()">account_circle</span>
+        </div>
+    </div>
+    
+    <hr style="border-top: 1px solid var(--color-border); margin: 0 0 20px 0;">
+    
+    <div class="map-area">
+        <div id="map"></div>
+        <div class="map-controls">
+            <button class="map-control-btn" onclick="showAllMarkers()">Show All Areas</button>
+            <button class="map-control-btn" onclick="toggleRainfallLayer()">Toggle Rainfall</button>
+        </div>
+        <div class="map-info-box">
+            <h4>Rainfall Map</h4>
+            <p>Click on markers for rainfall details. Colors indicate rainfall intensity.</p>
+        </div>
+    </div>
+
+    <div class="footer-content">
+        
+        <div class="rain-legend">
+            
+            <div class="legend-item">
+                <span class="legend-color" style="color: var(--color-high-rain);"></span>
+                <div class="legend-text">
+                    <strong>Red – High Rain:</strong>
+                    Heavy rainfall expected – take precautions.
+                </div>
+            </div>
+            
+            <div class="legend-item">
+                <span class="legend-color" style="color: var(--color-mod-rain);"></span>
+                <div class="legend-text">
+                    <strong>Orange – Moderate Rain:</strong>
+                    Moderate rain – carry an umbrella.
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <span class="legend-color" style="color: var(--color-light-rain);"></span> 
+                <div class="legend-text">
+                    <strong>Yellow – Slight Rain:</strong>
+                    Light showers – minimal impact.
+                </div>
+            </div>
+            
+            <div class="legend-item">
+                <span class="legend-color" style="color: var(--color-no-rain);"></span>
+                <div class="legend-text">
+                    <strong>Green – No Rain:</strong>
+                    Clear skies – no rain forecast.
+                </div>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <h3>Sampaloc, Manila</h3>
+            <p class="warning-level">Flood-Prone: High</p>
+            <hr style="border-top: 1px solid var(--color-border); margin: 10px 0; transition: border-color 0.3s;">
+            <p class="warning-message">
+                Severe flooding expected.<br>
+                <strong>Evacuate immediately and move to higher ground.</strong>
+            </p>
+        </div>
+
+    </div>
+
+    <!-- XGBOOST PREDICTION SECTION -->
+    <div class="prediction-section">
+        <div class="section-title">
+            <span class="material-icons">science</span>
+            <h2>Rainfall Prediction (XGBoost Model)</h2>
+        </div>
+
+        <div class="prediction-controls">
+            <div class="input-group">
+                <label for="tempmax">Maximum Temperature (°C)</label>
+                <input type="number" id="tempmax" step="0.1" value="20" min="20" max="40">
+            </div>
+            <div class="input-group">
+                <label for="tempmin">Minimum Temperature (°C)</label>
+                <input type="number" id="tempmin" step="0.1" value="15" min="15" max="35">
+            </div>
+            <div class="input-group">
+                <label for="humidity">Humidity (%)</label>
+                <input type="number" id="humidity" step="0.1" value="0" min="0" max="100">
+            </div>
+            <div class="input-group">
+                <label for="windspeed">Wind Speed (m/s)</label>
+                <input type="number" id="windspeed" step="0.1" value="0" min="0" max="20">
+            </div>
+            <div class="input-group">
+                <label for="sealevelpressure">Sea Level Pressure (hPa)</label>
+                <input type="number" id="sealevelpressure" step="0.1" value="980" min="980" max="1030">
+            </div>
+            <div class="input-group">
+                <label for="month">Month</label>
+                <select id="month">
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7" selected>July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="precip_lag1">Yesterday's Rainfall (mm)</label>
+                <input type="number" id="precip_lag1" step="0.1" value="0" min="0" max="200">
+            </div>
+            <div class="input-group">
+                <label for="humidity_lag1">Yesterday's Humidity (%)</label>
+                <input type="number" id="humidity_lag1" step="0.1" value="0" min="0" max="100">
+            </div>
+            <button class="predict-btn" onclick="predictRainfall()">
+                <span class="material-icons">bolt</span>
+                Predict Rainfall
+            </button>
+        </div>
+
+        <!-- Results Display -->
+        <div id="results-section" style="display: none;">
+            <div class="results-container">
+                <div id="classification-result" class="result-card result-classification">
+                    <h3><span class="material-icons">wb_sunny</span> Rain Occurrence</h3>
+                    <div class="result-value" id="rain-probability">0%</div>
+                    <div class="result-description" id="rain-description">
+                        Probability of rainfall occurring today
+                    </div>
+                </div>
+                <div id="regression-result" class="result-card result-regression">
+                    <h3><span class="material-icons">water_drop</span> Rainfall Amount</h3>
+                    <div class="result-value" id="rainfall-amount">0.0 mm</div>
+                    <div class="result-description" id="rainfall-description">
+                        Predicted rainfall amount if rain occurs
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Information -->
+        <div class="model-info">
+            <h3><span class="material-icons">info</span> Model Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="label">Model Type</div>
+                    <div class="value">XGBoost (Gradient Boosting)</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Training Data</div>
+                    <div class="value">3 weather stations (2010-2023)</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Classification Accuracy</div>
+                    <div class="value">% (F1 Score: )</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Regression MAE</div>
+                    <div class="value">mm</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Key Features</div>
+                    <div class="value">Humidity, Pressure, Lagged Rainfall</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Update Frequency</div>
+                    <div class="value">Real-time (hourly updates)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<!-- Message Box -->
+<div id="custom-message-box" class="message-box">
+    <p id="message-content"></p>
+    <button onclick="document.getElementById('custom-message-box').style.display='none'">Close</button>
+</div>
+
+<!-- Leaflet JS with integrity hash -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
+        crossorigin=""></script>
+<script src="prototype_map.js"></script>
+
+<!-- Debug script to ensure map loads -->
+<script>
+    // Debug logging
+    console.log("Rainfall Dashboard loading...");
+    
+    // Check if Leaflet loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM fully loaded");
+        console.log("Leaflet available:", typeof L !== 'undefined');
+        
+        // If Leaflet is available, initialize map after a short delay
+        if (typeof L !== 'undefined') {
+            console.log("Leaflet version:", L.version);
+            
+            // Wait for CSS to be applied
+            setTimeout(function() {
+                if (typeof initializeMap === 'function') {
+                    console.log("Calling initializeMap...");
+                    initializeMap();
+                } else {
+                    console.error("initializeMap function not found!");
+                    // Create a simple map as fallback
+                    try {
+                        var map = L.map('map').setView([14.5995, 121.0244], 11);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors',
+                            maxZoom: 19
+                        }).addTo(map);
+                        console.log("Fallback map created");
+                    } catch (e) {
+                        console.error("Fallback map failed:", e);
+                        document.getElementById('map').innerHTML = 
+                            '<div style="padding: 20px; text-align: center; color: white;">' +
+                            '<h3>Map Loading Error</h3>' +
+                            '<p>Please check your internet connection and try again.</p>' +
+                            '</div>';
+                    }
+                }
+            }, 100);
+        } else {
+            console.error("Leaflet library not loaded!");
+            document.getElementById('map').innerHTML = 
+                '<div style="padding: 20px; text-align: center; color: white;">' +
+                '<h3>Map Library Error</h3>' +
+                '<p>Leaflet map library failed to load. Please refresh the page.</p>' +
+                '</div>';
+        }
+    });
+</script>
+
+</body>
+</html>
