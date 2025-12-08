@@ -190,8 +190,8 @@ def predict_combined_rainfall(data: dict):
     if clf_booster is None or reg_booster is None:
         raise RuntimeError("Models are not loaded on the server.")
         
-    input_data_list = [data[feature] for feature in FEATURES]
-    input_Dmatrix = xgb.DMatrix(np.array([input_data_list]))
+    input_df = pd.DataFrame([data], columns=FEATURES)
+    input_Dmatrix = xgb.DMatrix(input_df)
     
     # Stage 1: Classification
     rain_prob = clf_booster.predict(input_Dmatrix)[0]
