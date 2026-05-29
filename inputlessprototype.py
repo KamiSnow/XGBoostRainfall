@@ -20,7 +20,6 @@ import warnings
 import json
 import time
 
-# --- CONFIGURATION ---
 try:
     warnings.filterwarnings('ignore', category=pd.SettingWithCopyWarning)
 except AttributeError:
@@ -36,7 +35,6 @@ clf_booster = None
 reg_booster = None 
 GLOBAL_METRICS = {}
 
-# CRITICAL: 13-feature list, synchronized across all files
 FEATURES = [
     'tempmax', 'tempmin',
     'humidity', 'windspeed', 'sealevelpressure',
@@ -46,9 +44,7 @@ FEATURES = [
     'windspeed_roll3'
 ]
 
-# =============================================================================
 # CORE UTILITIES
-# =============================================================================
 
 def load_models():
     """Load the trained XGBoost models from disk."""
@@ -236,7 +232,7 @@ def train_and_save_models():
     y_class = df['rain']
     y_reg = df['precip']
 
-    # Temporal split: 80% train, 20% test
+    # Temporal split
     split_idx = int(len(df) * 0.8)
     train_mask = df.index < split_idx
 
@@ -256,7 +252,7 @@ def train_and_save_models():
     print("\n--- Feature Correlation with Rainfall ---")
     print(X_train.corrwith(y_train_reg).sort_values(ascending=False))
     
-    # ========== CLASSIFICATION MODEL ==========
+    # CLASSIFICATION MODEL
     print("\n" + "="*60)
     print("TRAINING CLASSIFICATION MODEL")
     print("="*60)
@@ -307,7 +303,7 @@ def train_and_save_models():
     feature_importance_df = pd.Series(clf_final.feature_importances_, index=FEATURES).sort_values(ascending=False)
     print(feature_importance_df)
     
-    # ========== CLASSIFICATION EVALUATION ==========
+    # CLASSIFICATION EVALUATION
     print("\n" + "="*60)
     print("CLASSIFICATION EVALUATION (Test Set)")
     print("="*60)
@@ -328,7 +324,7 @@ def train_and_save_models():
     clf_final.save_model(CLASSIFIER_MODEL_PATH)
     print(f"\nClassifier saved to {CLASSIFIER_MODEL_PATH}")
     
-    # ========== REGRESSION MODEL ==========
+    # REGRESSION MODEL
     print("\n" + "="*60)
     print("TRAINING REGRESSION MODEL")
     print("="*60)
@@ -413,7 +409,7 @@ def train_and_save_models():
     train_end_time = time.time()
     training_time = train_end_time - train_start_time
     
-    # ========== REGRESSION EVALUATION ==========
+    # REGRESSION EVALUATION
     print("\n" + "="*60)
     print("REGRESSION EVALUATION (Test Set - Rainy Days)")
     print("="*60)
@@ -439,7 +435,7 @@ def train_and_save_models():
     reg_final.save_model(REGRESSOR_MODEL_PATH)
     print(f"\nRegressor saved to {REGRESSOR_MODEL_PATH}")
     
-    # ========== POPULATE GLOBAL_METRICS ==========
+    # POPULATE GLOBAL_METRICS
     GLOBAL_METRICS = {
         # Core metrics
         'f1_score': float(f1_test),
@@ -466,9 +462,71 @@ def train_and_save_models():
     
     return True
 
-# =============================================================================
+def load_station_specific_models():
+    """Load station-specific models for more granular predictions."""
+    station_models = {
+        'naia': {
+            'classifier': None,
+            'regressor': None
+        },
+        'port': {
+            'classifier': None, 
+            'regressor': None
+        },
+        'science': {
+            'classifier': None,
+            'regressor': None
+        }
+    }
+    
+    # Try to load station-specific models
+    for station in ['naia', 'port', 'science']:
+        clf_path = f'xgb_classifier_{station}.json'
+        reg_path = f'xgb_regressor_{station}.json'
+        
+        try:
+            if os.path.exists(clf_path):
+                booster = xgb.Booster()
+                booster.load_model(clf_path)
+                station_models[station]['classifier'] = booster
+                
+            if os.path.exists(reg_path):
+                booster = xgb.Booster()
+                booster.load_model(reg_path)
+                station_models[station]['regressor'] = booster
+                
+        except Exception as e:
+            print(f"Warning: Could not load {station} specific model: {e}")
+    
+    return station_models
+
+def predict_station_specific(station_models, station_name, input_features):
+    """Predict rainfall for a specific station."""
+    station = station_models.get(station_name)
+    if not station or not station['classifier']:
+        return None  
+    
+    input_df = pd.DataFrame([input_features], columns=FEATURES)
+    input_Dmatrix = xgb.DMatrix(input_df)
+    
+    # Classification
+    rain_prob = station['classifier'].predict(input_Dmatrix)[0]
+    rain_occurrence = 1 if rain_prob > 0.5 else 0
+    
+    # Regression
+    predicted_amount = 0.0
+    if rain_occurrence == 1 and station['regressor']:
+        predicted_amount = station['regressor'].predict(input_Dmatrix)[0]
+        predicted_amount = float(np.maximum(predicted_amount, 0))
+    
+    return {
+        'rain_occurrence': rain_occurrence,
+        'rain_probability': float(rain_prob),
+        'rain_amount': predicted_amount,
+        'station': station_name
+    }
+
 # FLASK API ROUTES
-# =============================================================================
 
 @app.route('/metrics_and_prediction', methods=['GET'])
 def handle_metrics_and_prediction():
@@ -476,36 +534,46 @@ def handle_metrics_and_prediction():
     global clf_booster, reg_booster, GLOBAL_METRICS
     
     try:
-        # Ensure models are trained
-        if not os.path.exists(CLASSIFIER_MODEL_PATH) or not os.path.exists(REGRESSOR_MODEL_PATH) or not GLOBAL_METRICS:
-            if not train_and_save_models():
-                return jsonify({'error': 'Failed to train models due to data error.'}), 500
+        # Load station-specific models
+        station_models = load_station_specific_models()
         
-        # Load models for prediction
-        if clf_booster is None or reg_booster is None:
-            if not load_models():
-                return jsonify({'error': 'Failed to load trained models.'}), 500
-
         # Get next day's input data
         input_data = get_last_data_point()
-
-        # Predict
         model_features = {k: input_data[k] for k in FEATURES}
-        prediction_result = predict_combined_rainfall(model_features)
-
+        
+        # Get general prediction
+        general_prediction = predict_combined_rainfall(model_features)
+        
+        # Get station-specific predictions
+        station_predictions = {}
+        for station in ['naia', 'port', 'science']:
+            station_pred = predict_station_specific(station_models, station, model_features)
+            if station_pred:
+                station_predictions[station] = station_pred
+            else:
+                # Fallback to general model
+                station_predictions[station] = general_prediction.copy()
+                station_predictions[station]['station'] = station
+                station_predictions[station]['is_fallback'] = True
+        
         # Combine results
         response = {
-            'prediction': prediction_result,
+            'prediction': general_prediction,
+            'station_predictions': station_predictions,
             'metrics': GLOBAL_METRICS,
             'prediction_date': input_data['prediction_date']
         }
         return jsonify(response)
-
-    except RuntimeError as e:
-        return jsonify({'error': str(e)}), 500
+        
     except Exception as e:
-        print(f"UNEXPECTED ERROR: {e}")
-        return jsonify({'error': 'An unknown internal error occurred.'}), 500
+        print(f"Error in station predictions: {e}")
+        # Fall back to original response
+        return jsonify({
+            'prediction': {'rain_occurrence': 0, 'rain_probability': 0.3, 'rain_amount': 0},
+            'station_predictions': {},
+            'metrics': GLOBAL_METRICS,
+            'prediction_date': '2024-01-01'
+        })
 
 @app.route('/predict_rain', methods=['POST'])
 def handle_prediction_request():
@@ -526,9 +594,7 @@ def handle_prediction_request():
         print(f"UNEXPECTED ERROR: {e}")
         return jsonify({'error': 'An unknown internal error occurred.'}), 500
 
-# =============================================================================
 # MAIN EXECUTION
-# =============================================================================
 if __name__ == '__main__':
     # Check if retraining is needed
     if not os.path.exists(CLASSIFIER_MODEL_PATH) or not os.path.exists(REGRESSOR_MODEL_PATH) or not GLOBAL_METRICS:

@@ -71,6 +71,32 @@ body {
     color: var(--color-text-primary);
 }
 
+/* =================================================== */
+/* MAP AREA STYLES */
+/* =================================================== */
+
+.map-area {
+    width: 100%;
+    height: 600px;
+    margin-bottom: 20px;
+    background-color: #2b3a4a;
+    border-radius: 5px;
+    border: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    border: none;
+}
+
+.leaflet-container {
+    background: #2b3a4a !important;
+}
+
 .map-controls {
     position: absolute;
     top: 10px;
@@ -82,24 +108,27 @@ body {
 
 .map-control-btn {
     padding: 8px 15px;
-    background-color: var(--color-card-bg);
-    color: var(--color-text-primary);
+    background-color: var(--color-primary);
+    color: white;
     border: 1px solid var(--color-border);
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.2s, border-color 0.2s;
+    font-size: 0.9em;
+    font-weight: 500;
 }
 
 .map-control-btn:hover {
-    background-color: #3a3a3a;
+    background-color: #1565c0;
 }
 
 .map-info-box {
     position: absolute;
-    top: 10px;
+    bottom: 10px;
     left: 10px;
     z-index: 1000;
-    background-color: var(--color-card-bg);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
     border-radius: 5px;
     padding: 10px 15px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -110,6 +139,12 @@ body {
     margin: 0 0 5px 0;
     color: var(--color-primary);
     font-weight: 600;
+}
+
+.map-info-box p {
+    margin: 0;
+    font-size: 0.85em;
+    opacity: 0.9;
 }
 
 /* =================================================== */
@@ -177,7 +212,121 @@ body {
     color: var(--color-text-secondary);
 }
 
+/* =================================================== */
+/* BASELINE PAGASA METRICS SECTION */
+/* =================================================== */
+
+.baseline-metrics {
+    background: rgba(255, 215, 0, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.baseline-metrics h4 {
+    color: #FFD700;
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.baseline-badge {
+    background: #FFD700;
+    color: #333;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+.baseline-description {
+    font-size: 0.9em;
+    color: rgba(255, 215, 0, 0.9);
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.baseline-description strong {
+    color: #FFD700;
+}
+
+.baseline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.baseline-card {
+    background: rgba(255, 215, 0, 0.08);
+    border-radius: 6px;
+    padding: 15px;
+    border-left: 3px solid #FFD700;
+    transition: transform 0.2s ease;
+}
+
+.baseline-card:hover {
+    transform: translateY(-2px);
+}
+
+.baseline-card h5 {
+    margin: 0 0 10px 0;
+    color: #FFD700;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.baseline-metric {
+    margin-bottom: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.baseline-metric:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.baseline-metric .metric-name {
+    font-weight: 600;
+    color: rgba(255, 215, 0, 0.8);
+    min-width: 100px;
+    display: inline-block;
+}
+
+.baseline-metric {
+    font-weight: 700;
+    color: #FFD700;
+}
+
+.baseline-note {
+    font-size: 0.8em;
+    color: rgba(255, 215, 0, 0.7);
+    line-height: 1.4;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.comparison-highlight {
+    background: var(--color-primary);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+/* =================================================== */
 /* MODEL INFO SECTION */
+/* =================================================== */
+
 .model-info h3 {
     margin: 0 0 15px 0;
     font-size: 1.2em;
@@ -190,8 +339,9 @@ body {
 
 .info-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
 }
 
 .info-item .label {
@@ -207,7 +357,167 @@ body {
     color: var(--color-text-primary);
 }
 
+/* =================================================== */
+/* ENHANCED METRICS SECTIONS */
+/* =================================================== */
+
+.metrics-section {
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.metrics-section h4 {
+    color: var(--color-primary);
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.objective-badge {
+    background: var(--color-primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+/* Model Stability Grid */
+.stability-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.stability-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 15px;
+    border: 1px solid var(--color-border);
+}
+
+.stability-card .metric-label {
+    font-size: 0.85em;
+    color: var(--color-text-secondary);
+    margin-bottom: 5px;
+}
+
+.stability-card .metric-value {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.stability-interpretation {
+    font-size: 0.8em;
+    color: var(--color-text-secondary);
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* Model Convergence */
+.convergence-chart-wrapper {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 10px;
+}
+
+.chart-title {
+    color: var(--color-primary);
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+}
+
+.mae-trend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.mae-trend-item {
+    background: rgba(74, 144, 226, 0.1);
+    border-left: 3px solid var(--color-primary);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+}
+
+.mae-trend-item .round-label {
+    color: var(--color-text-secondary);
+    font-size: 0.8em;
+}
+
+.mae-trend-item .mae-value {
+    font-weight: 700;
+    color: var(--color-primary);
+    font-size: 1.1em;
+}
+
+.convergence-explanation {
+    background: rgba(74, 144, 226, 0.08);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 15px;
+    font-size: 0.9em;
+    line-height: 1.5;
+    border-left: 3px solid var(--color-primary);
+}
+
+/* Feature Importance */
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 0 0;
+}
+
+.feature-list li {
+    padding: 8px 12px;
+    margin: 6px 0;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    border-left: 3px solid var(--color-border);
+    transition: all 0.2s ease;
+}
+
+.feature-list li:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(5px);
+}
+
+.feature-list li.lag-feature {
+    border-left-color: var(--color-primary);
+    background: rgba(74, 144, 226, 0.08);
+}
+
+.feature-name {
+    font-weight: 600;
+    display: inline-block;
+    min-width: 200px;
+    color: var(--color-text-primary);
+}
+
+.feature-name.highlight {
+    color: var(--color-primary);
+}
+
+.feature-score {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+/* =================================================== */
 /* LOADING & MESSAGES */
+/* =================================================== */
 
 .loading-overlay {
     position: fixed;
@@ -259,4 +569,110 @@ body {
     padding: 8px 15px;
     border-radius: 4px;
     cursor: pointer;
+}
+
+/* =================================================== */
+/* RESPONSIVE ADJUSTMENTS */
+/* =================================================== */
+
+@media (max-width: 1024px) {
+    .info-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .stability-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .results-container {
+        flex-direction: column;
+    }
+    
+    .info-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .baseline-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .map-controls {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+}
+
+@media (max-width: 480px) {
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .map-area {
+        height: 400px;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}
+
+.station-label {
+    pointer-events: none; /* Allow clicks to pass through to map */
+}
+
+/* Sphere of Influence tooltip style */
+.sphere-tooltip {
+    font-size: 12px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 4px;
+    padding: 4px 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Map controls additional button styling */
+.map-control-btn.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* Legend styling for spheres */
+.sphere-legend {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    margin-top: 10px;
+}
+
+.sphere-legend-item {
+    display: flex;
+    align-items: center;
+    margin: 5px 0;
+}
+
+.sphere-legend-color {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Animation for sphere appearance */
+@keyframes spherePulse {
+    0% { opacity: 0.1; }
+    50% { opacity: 0.2; }
+    100% { opacity: 0.15; }
+}
+
+.leaflet-interactive {
+    animation: spherePulse 2s ease-in-out;
 }

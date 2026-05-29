@@ -18,190 +18,8 @@
           crossorigin=""/>
     
     <link rel="stylesheet" href="inputlessprototype.css">
+    <link rel="stylesheet" href="dashboard-styles.css">
     
-    <style>
-        .map-area {
-            width: 100%;
-            height: 600px;
-            margin-bottom: 20px;
-            background-color: #2b3a4a;
-            border-radius: 5px;
-            border: 1px solid var(--color-border);
-            position: relative;
-            overflow: hidden;
-        }
-
-        #map {
-            width: 100%;
-            height: 100%;
-            border-radius: 5px;
-            border: none;
-        }
-
-        .leaflet-container {
-            background: #2b3a4a !important;
-        }
-
-        /* Enhanced styling for objectives sections */
-        .metrics-section {
-            background: var(--color-card-bg);
-            border: 1px solid var(--color-border);
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .metrics-section h4 {
-            color: var(--color-primary);
-            margin: 0 0 15px 0;
-            font-size: 1.1em;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .objective-badge {
-            background: var(--color-primary);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.75em;
-            font-weight: 600;
-        }
-
-        .convergence-chart-wrapper {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
-            padding: 15px;
-            margin-top: 10px;
-        }
-
-        .chart-title {
-            color: var(--color-primary);
-            font-weight: 600;
-            margin-bottom: 10px;
-            font-size: 0.95em;
-        }
-
-        .mae-trend-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 8px;
-            margin: 15px 0;
-        }
-
-        .mae-trend-item {
-            background: rgba(74, 144, 226, 0.1);
-            border-left: 3px solid var(--color-primary);
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.85em;
-        }
-
-        .mae-trend-item .round-label {
-            color: var(--color-text-secondary);
-            font-size: 0.8em;
-        }
-
-        .mae-trend-item .mae-value {
-            font-weight: 700;
-            color: var(--color-primary);
-            font-size: 1.1em;
-        }
-
-        .convergence-explanation {
-            background: rgba(74, 144, 226, 0.08);
-            border-radius: 6px;
-            padding: 12px;
-            margin-top: 15px;
-            font-size: 0.9em;
-            line-height: 1.5;
-            border-left: 3px solid var(--color-primary);
-        }
-
-        .feature-list {
-            list-style: none;
-            padding: 0;
-            margin: 10px 0 0 0;
-        }
-
-        .feature-list li {
-            padding: 8px 12px;
-            margin: 6px 0;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
-            border-left: 3px solid var(--color-border);
-            transition: all 0.2s ease;
-        }
-
-        .feature-list li:hover {
-            background: rgba(255, 255, 255, 0.06);
-            transform: translateX(5px);
-        }
-
-        .feature-list li.lag-feature {
-            border-left-color: var(--color-primary);
-            background: rgba(74, 144, 226, 0.08);
-        }
-
-        .feature-name {
-            font-weight: 600;
-            display: inline-block;
-            min-width: 200px;
-            color: var(--color-text-primary);
-        }
-
-        .feature-name.highlight {
-            color: var(--color-primary);
-        }
-
-        .feature-score {
-            font-weight: 700;
-            color: var(--color-primary);
-        }
-
-        .stability-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 10px;
-        }
-
-        .stability-card {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
-            padding: 15px;
-            border: 1px solid var(--color-border);
-        }
-
-        .stability-card .metric-label {
-            font-size: 0.85em;
-            color: var(--color-text-secondary);
-            margin-bottom: 5px;
-        }
-
-        .stability-card .metric-value {
-            font-size: 1.5em;
-            font-weight: 700;
-            color: var(--color-primary);
-        }
-
-        .stability-interpretation {
-            font-size: 0.8em;
-            color: var(--color-text-secondary);
-            margin-top: 8px;
-            font-style: italic;
-        }
-
-        /* Improved info-grid spacing */
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-    </style>
 </head>
 <body>
 
@@ -222,8 +40,10 @@
     <div class="map-area">
         <div id="map"></div>
         <div class="map-controls">
-            <button class="map-control-btn" onclick="showAllMarkers()">Show All Areas</button>
-            <button class="map-control-btn" onclick="toggleRainfallLayer()">Toggle Rainfall</button>
+          <button class="map-control-btn" onclick="showAllMarkers()">Show All Areas</button>
+          <button class="map-control-btn" onclick="toggleSpheresOfInfluence()">Toggle Spheres of Influence</button>
+          <button class="map-control-btn" onclick="resetToGeneralPrediction()" id="reset-btn" style="display: none;">
+
         </div>
         <div class="map-info-box">
             <h4>Rainfall Map</h4>
@@ -256,8 +76,77 @@
             </div>
         </div>
 
+        <!-- BASELINE PAGASA METRICS SECTION -->
+        <div class="baseline-metrics">
+            <h4>
+                <span class="material-icons">history</span>
+                BASELINE PAGASA METRICS
+                <span class="baseline-badge">Before Optimization</span>
+            </h4>
+            <p class="baseline-description">
+                Traditional rainfall prediction metrics used as baseline for comparison. 
+                <strong>Enhanced metrics below show improvements achieved through XGBoost optimization.</strong>
+            </p>
+            
+            <div class="baseline-grid">
+                <div class="baseline-card">
+                    <h5>Rain Occurrence (Classification)</h5>
+                    <div class="baseline-metric">
+                        <span class="metric-name">Accuracy:</span> 0.811
+                    </div>
+                    <div class="baseline-metric">
+                        <span class="metric-name">Precision:</span> 0.859
+                    </div>
+                    <div class="baseline-metric">
+                        <span class="metric-name">Recall:</span> 0.870
+                    </div>
+                    <div class="baseline-metric">
+                        <span class="metric-name">F1 Score:</span> 0.864
+                    </div>
+                    <p class="baseline-note">
+                        Traditional classification model for rain/no-rain prediction
+                    </p>
+                </div>
+                
+                <div class="baseline-card">
+                    <h5>Rainfall Amount (Regression)</h5>
+                    <div class="baseline-metric">
+                        <span class="metric-name">MAE:</span> 14.488 mm
+                    </div>
+                    <div class="baseline-metric">
+                        <span class="metric-name">RMSE:</span> 23.961 mm
+                    </div>
+                    <div class="baseline-metric">
+                        <span class="metric-name">R²:</span> 0.163
+                    </div>
+                    <div class="baseline-metric">
+                        <span class="metric-name">MAPE:</span> 210.7%
+                    </div>
+                    <p class="baseline-note">
+                        Based on 211 rainy day samples (precip > 0.1mm)
+                    </p>
+                </div>
+                
+                <div class="baseline-card">
+                    <h5>Training Statistics</h5>
+                    <div class="baseline-metric">
+                        <span class="metric-name">Train Samples:</span> 781
+                    </div>
+                    <div class="baseline-metric">
+                        <span class="metric-name">Test Samples:</span> 211
+                    </div>
+                    <div class="baseline-metric">
+                        <span class="metric-name">Model Type:</span> Traditional
+                    </div>
+                    <p class="baseline-note">
+                        Limited feature engineering and traditional regression approach
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="model-info">
-            <h3><span class="material-icons">info</span> Model Performance Metrics (Test Set)</h3>
+            <h3><span class="material-icons">info</span> Enhanced Model Performance Metrics (Test Set) <span class="comparison-highlight">+Improvements</span></h3>
             <div class="info-grid">
                 <div class="info-item">
                     <div class="label">Model Type</div>
